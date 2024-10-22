@@ -1,0 +1,28 @@
+{
+    "schemaVersion": 1,
+    "id": "whitelistupdates",
+    "version": "${version}",
+    "name": "Whitelist Updates",
+    "description": "Sends whitelist updates to a Discord channel via a webhook",
+    "authors": [
+        "VelizarBG"
+    ],
+    "contact": {
+        "repo": "https://github.com/VelizarBG/whitelistupdates"
+    },
+    "license": "MIT",
+    "icon": "assets/whitelistupdates/icon.png",
+    "environment": "*",
+    "entrypoints": {
+        "main": [
+            "velizarbg.whitelistupdates.WhitelistUpdatesMod"
+        ]
+    },
+    "mixins": [
+        "whitelistupdates.mixins.json"
+    ],
+    "depends": {
+        "fabricloader": "${loader_dependency}",
+        "minecraft": "${minecraft_dependency}"
+    }
+}

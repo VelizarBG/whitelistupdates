@@ -1,0 +1,105 @@
+plugins {
+	id 'fabric-loom' version '1.8.10'
+	id 'maven-publish'
+}
+
+version = project.mod_version + '+' + project.minecraft_version
+group = project.maven_group
+
+base {
+	archivesName = project.archives_base_name
+}
+
+repositories {
+	maven { // Vineflower
+		name = "sonatype-oss-snapshots1"
+		url = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
+	}
+}
+
+afterEvaluate {
+	loom.runs.configureEach {
+		vmArgs(
+			"-Xmx2G",
+			// JRE with DCEVM required https://github.com/JetBrains/JetBrainsRuntime/releases
+			"-XX:+AllowEnhancedClassRedefinition",
+			// Useful for hotswaps https://stackoverflow.com/a/46495011
+			"-XX:ReservedCodeCacheSize=1G",
+			// https://gist.github.com/maityyy/3dbcd558d58a6412c3a2a38c72706e8e
+			"-javaagent:${ configurations.compileClasspath.find { it.name.contains("sponge-mixin") } }"
+		)
+
+		// https://github.com/SpongePowered/Mixin/wiki/Mixin-Java-System-Properties
+		property "mixin.debug.export=true" // export classes with all mixin changes to run/.mixin.out
+
+		programArgs "--username=VelizarBG", "--uuid=2990d3e0-928c-49a8-a1f0-3c6931f931fb"
+	}
+}
+
+dependencies {
+	vineflowerDecompilerClasspath "org.vineflower:vineflower:1.11.0-20240911.205325-50"
+
+	// To change the versions see the gradle.properties file
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+}
+
+processResources {
+	inputs.property "version", project.version
+	inputs.property "loader_dependency", project.loader_dependency
+	inputs.property "minecraft_dependency", project.minecraft_dependency
+	filteringCharset "UTF-8"
+
+	filesMatching("fabric.mod.json") {
+		expand "version": project.version,
+				"loader_dependency": project.loader_dependency,
+				"minecraft_dependency": project.minecraft_dependency
+	}
+}
+
+def targetJavaVersion = 21
+tasks.withType(JavaCompile).configureEach {
+	// ensure that the encoding is set to UTF-8, no matter what the system default is
+	// this fixes some edge cases with special characters not displaying correctly
+	// see http://yodaconditions.net/blog/fix-for-java-file-encoding-problems-with-gradle.html
+	// If Javadoc is generated, this must be specified in that task too.
+	it.options.encoding = "UTF-8"
+	if (targetJavaVersion >= 10 || JavaVersion.current().isJava10Compatible()) {
+		it.options.release.set(targetJavaVersion)
+	}
+}
+
+java {
+	def javaVersion = JavaVersion.toVersion(targetJavaVersion)
+	if (JavaVersion.current() < javaVersion) {
+		toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
+	}
+	// Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task
+	// if it is present.
+	// If you remove this line, sources will not be generated.
+	withSourcesJar()
+}
+
+jar {
+	from("LICENSE") {
+		rename { "${it}_${project.archivesBaseName}"}
+	}
+}
+
+// configure the maven publication
+publishing {
+	publications {
+		mavenJava(MavenPublication) {
+			from components.java
+		}
+	}
+
+	// See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
+	repositories {
+		// Add repositories to publish to here.
+		// Notice: This block does NOT have the same function as the block in the top level.
+		// The repositories here will be used for publishing your artifact, not for
+		// retrieving dependencies.
+	}
+}

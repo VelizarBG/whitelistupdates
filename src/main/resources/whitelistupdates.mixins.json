@@ -1,0 +1,15 @@
+{
+    "required": true,
+    "minVersion": "0.8",
+    "package": "velizarbg.whitelistupdates.mixins",
+    "compatibilityLevel": "JAVA_21",
+    "mixins": [
+        "ServerCommandSourceAccessor",
+        "WhitelistCommandMixin"
+    ],
+    "client": [
+    ],
+    "injectors": {
+        "defaultRequire": 1
+    }
+}
