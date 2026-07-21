@@ -1,13 +1,13 @@
 package velizarbg.whitelistupdates.mixins;
 
 import com.llamalad7.mixinextras.sugar.Local;
-import com.mojang.authlib.GameProfile;
-import net.minecraft.entity.Entity;
+import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.server.dedicated.command.WhitelistCommand;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.rcon.RconCommandOutput;
+import net.minecraft.server.commands.WhitelistCommand;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.players.NameAndId;
+import net.minecraft.server.rcon.RconConsoleSource;
+import net.minecraft.world.entity.Entity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -30,7 +30,7 @@ public class WhitelistCommandMixin {
 	private static HttpClient httpClient = null;
 
 	@Unique
-	private static void sendMessage(String message, ServerCommandSource source, GameProfile gameProfile) {
+	private static void sendMessage(String message, CommandSourceStack source, NameAndId nameAndId) {
 		if (httpClient == null) {
 			httpClient = HttpClient.newBuilder().executor(source.getServer())/*.priority(256)*/.build();
 		}
@@ -39,11 +39,11 @@ public class WhitelistCommandMixin {
 			.formatted(
 				config.serverName,
 				// Using this instead of source.getEntity() because that is easily circumventable (e.g. /execute as) and gives less info
-				switch(((ServerCommandSourceAccessor) source).getOutput()) {
-					case ServerPlayerEntity player ->
-						"[%s](<https://namemc.com/profile/%s>)".formatted(player.getNameForScoreboard(), player.getUuid());
+				switch(((CommandSourceStackAccessor) source).getSource()) {
+					case ServerPlayer player ->
+						"[%s](<https://namemc.com/profile/%s>)".formatted(player.getScoreboardName(), player.getUUID());
 					case MinecraftServer ignored -> "The console"; // This also happens when a data pack function (requires setting function-permission-level to 4) does it
-					case RconCommandOutput ignored -> "RCON";
+					case RconConsoleSource ignored -> "RCON";
 					case null, default -> {
 						LOGGER.warn("Unknown output of command source");
 						LOGGER.info("""
@@ -53,17 +53,17 @@ public class WhitelistCommandMixin {
 								Source entity UUID: {}
 								Source position: {}
 								""",
-							((ServerCommandSourceAccessor) source).getOutput().getClass(),
-							source.getName(),
+							((CommandSourceStackAccessor) source).getSource().getClass(),
+							source.getTextName(),
 							source.getDisplayName(),
-							source.getEntity() instanceof Entity entity ? entity.getUuid() : "(no entity)",
+							source.getEntity() instanceof Entity entity ? entity.getUUID() : "(no entity)",
 							source.getPosition()
 						);
 						yield "???(Check server log)";
 					}
 				},
-				gameProfile.getName(),
-				gameProfile.getId()
+				nameAndId.name(),
+				nameAndId.id()
 			);
 		HttpRequest request = HttpRequest.newBuilder()
 			.uri(URI.create("https://discord.com/api/webhooks/%s/%s".formatted(config.webhookId, config.webhookToken)))
@@ -85,13 +85,13 @@ public class WhitelistCommandMixin {
 			.thenAccept(LOGGER::info)*/;
 	}
 
-	@Inject(method = "executeAdd", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/command/ServerCommandSource;sendFeedback(Ljava/util/function/Supplier;Z)V"))
-	private static void sendAddMessage(CallbackInfoReturnable<Integer> cir, @Local(argsOnly = true) ServerCommandSource source, @Local GameProfile gameProfile) {
-		sendMessage("[%s] %s added [%s](<https://namemc.com/profile/%s>) to the whitelist.", source, gameProfile);
+	@Inject(method = "addPlayers", at = @At(value = "INVOKE", target = "Lnet/minecraft/commands/CommandSourceStack;sendSuccess(Ljava/util/function/Supplier;Z)V"))
+	private static void sendAddMessage(CallbackInfoReturnable<Integer> cir, @Local(argsOnly = true) CommandSourceStack source, @Local NameAndId nameAndId) {
+		sendMessage("[%s] %s added [%s](<https://namemc.com/profile/%s>) to the whitelist.", source, nameAndId);
 	}
 
-	@Inject(method = "executeRemove", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/command/ServerCommandSource;sendFeedback(Ljava/util/function/Supplier;Z)V"))
-	private static void sendRemoveMessage(CallbackInfoReturnable<Integer> cir, @Local(argsOnly = true) ServerCommandSource source, @Local GameProfile gameProfile) {
-		sendMessage("[%s] %s removed [%s](<https://namemc.com/profile/%s>) from the whitelist.", source, gameProfile);
+	@Inject(method = "removePlayers", at = @At(value = "INVOKE", target = "Lnet/minecraft/commands/CommandSourceStack;sendSuccess(Ljava/util/function/Supplier;Z)V"))
+	private static void sendRemoveMessage(CallbackInfoReturnable<Integer> cir, @Local(argsOnly = true) CommandSourceStack source, @Local NameAndId nameAndId) {
+		sendMessage("[%s] %s removed [%s](<https://namemc.com/profile/%s>) from the whitelist.", source, nameAndId);
 	}
 }

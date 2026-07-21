@@ -4,7 +4,7 @@
     "package": "velizarbg.whitelistupdates.mixins",
     "compatibilityLevel": "JAVA_21",
     "mixins": [
-        "ServerCommandSourceAccessor",
+        "CommandSourceStackAccessor",
         "WhitelistCommandMixin"
     ],
     "client": [
