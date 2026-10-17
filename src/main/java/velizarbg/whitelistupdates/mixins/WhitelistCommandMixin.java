@@ -86,12 +86,12 @@ public class WhitelistCommandMixin {
 	}
 
 	@Inject(method = "addPlayers", at = @At(value = "INVOKE", target = "Lnet/minecraft/commands/CommandSourceStack;sendSuccess(Ljava/util/function/Supplier;Z)V"))
-	private static void sendAddMessage(CallbackInfoReturnable<Integer> cir, @Local(argsOnly = true) CommandSourceStack source, @Local NameAndId nameAndId) {
-		sendMessage("[%s] %s added [%s](<https://namemc.com/profile/%s>) to the whitelist.", source, nameAndId);
+	private static void sendAddMessage(CallbackInfoReturnable<Integer> cir, @Local(argsOnly = true) CommandSourceStack source, @Local NameAndId target) {
+		sendMessage("[%s] %s added [%s](<https://namemc.com/profile/%s>) to the whitelist.", source, target);
 	}
 
 	@Inject(method = "removePlayers", at = @At(value = "INVOKE", target = "Lnet/minecraft/commands/CommandSourceStack;sendSuccess(Ljava/util/function/Supplier;Z)V"))
-	private static void sendRemoveMessage(CallbackInfoReturnable<Integer> cir, @Local(argsOnly = true) CommandSourceStack source, @Local NameAndId nameAndId) {
-		sendMessage("[%s] %s removed [%s](<https://namemc.com/profile/%s>) from the whitelist.", source, nameAndId);
+	private static void sendRemoveMessage(CallbackInfoReturnable<Integer> cir, @Local(argsOnly = true) CommandSourceStack source, @Local NameAndId target) {
+		sendMessage("[%s] %s removed [%s](<https://namemc.com/profile/%s>) from the whitelist.", source, target);
 	}
 }
