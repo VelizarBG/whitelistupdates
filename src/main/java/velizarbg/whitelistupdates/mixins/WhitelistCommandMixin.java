@@ -13,6 +13,7 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import velizarbg.whitelistupdates.PlayerCommandSource;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -35,11 +36,14 @@ public class WhitelistCommandMixin {
 			httpClient = HttpClient.newBuilder().executor(source.getServer())/*.priority(256)*/.build();
 		}
 
+		Object sourceIn = ((CommandSourceStackAccessor) source).getSource();
+		if (sourceIn instanceof PlayerCommandSource playerSource)
+			sourceIn = playerSource.whitelistupdates$getPlayer();
 		var formattedMsg = message
 			.formatted(
 				config.serverName,
 				// Using this instead of source.getEntity() because that is easily circumventable (e.g. /execute as) and gives less info
-				switch(((CommandSourceStackAccessor) source).getSource()) {
+				switch(sourceIn) {
 					case ServerPlayer player ->
 						"[%s](<https://namemc.com/profile/%s>)".formatted(player.getScoreboardName(), player.getUUID());
 					case MinecraftServer ignored -> "The console"; // This also happens when a data pack function (requires setting function-permission-level to 4) does it
@@ -53,7 +57,7 @@ public class WhitelistCommandMixin {
 								Source entity UUID: {}
 								Source position: {}
 								""",
-							((CommandSourceStackAccessor) source).getSource().getClass(),
+							sourceIn != null ? sourceIn.getClass() : null,
 							source.getTextName(),
 							source.getDisplayName(),
 							source.getEntity() instanceof Entity entity ? entity.getUUID() : "(no entity)",
